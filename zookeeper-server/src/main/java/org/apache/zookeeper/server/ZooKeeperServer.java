@@ -452,9 +452,12 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     }
 
     public synchronized void startup() {
+
+    	//创建session
         if (sessionTracker == null) {
             createSessionTracker();
         }
+        //
         startSessionTracker();
         setupRequestProcessors();
 
@@ -811,6 +814,8 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
             }
         }
         try {
+
+        	// 会话激活 只要客户端向服务端发送读写请求
             touch(si.cnxn);
             boolean validpacket = Request.isValid(si.type);
             if (validpacket) {
@@ -1070,6 +1075,8 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
                 secureServerCnxnFactory.closeSession(sessionId);
             }
             cnxn.setSessionId(sessionId);
+
+            // 重新激活session
             reopenSession(cnxn, sessionId, passwd, sessionTimeout);
         }
     }

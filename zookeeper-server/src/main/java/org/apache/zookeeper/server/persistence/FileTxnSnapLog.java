@@ -201,8 +201,8 @@ public class FileTxnSnapLog {
      * this function restores the server
      * database after reading from the
      * snapshots and transaction logs
-     * @param dt the datatree to be restored
-     * @param sessions the sessions to be restored
+     * @param dt the datatree to be restored 数据
+     * @param sessions the sessions to be restored  会话
      * @param listener the playback listener to run on the
      * database restoration
      * @return the highest zxid restored
@@ -212,7 +212,7 @@ public class FileTxnSnapLog {
                         PlayBackListener listener) throws IOException {
         long deserializeResult = snapLog.deserialize(dt, sessions);
         FileTxnLog txnLog = new FileTxnLog(dataDir);
-        if (-1L == deserializeResult) {
+        if (-1L == deserializeResult) {//没有快照序列化
             /* this means that we couldn't find any snapshot, so we need to
              * initialize an empty database (reported in ZOOKEEPER-2325) */
             if (txnLog.getLastLoggedZxid() != -1) {

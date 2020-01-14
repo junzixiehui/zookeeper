@@ -61,7 +61,10 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
     }
     
     /**
+	 *
+	 * 主要负责请求发送与接收
      * @return true if a packet was received
+	 *        如果收到数据包 返回true
      * @throws InterruptedException
      * @throws IOException
      */
@@ -71,6 +74,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
         if (sock == null) {
             throw new IOException("Socket is null!");
         }
+		//是否有可读数据
         if (sockKey.isReadable()) {
             int rc = sock.read(incomingBuffer);
             if (rc < 0) {
@@ -84,7 +88,9 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
                 if (incomingBuffer == lenBuffer) {
                     recvCount.getAndIncrement();
                     readLength();
-                } else if (!initialized) {
+                } else if (!initialized) { //没有初始化连接
+
+
                     readConnectResult();
                     enableRead();
                     if (findSendablePacket(outgoingQueue,
@@ -98,6 +104,8 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
                     updateLastHeard();
                     initialized = true;
                 } else {
+
+                	//处理响应
                     sendThread.readResponse(incomingBuffer);
                     lenBuffer.clear();
                     incomingBuffer = lenBuffer;
@@ -105,7 +113,11 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
                 }
             }
         }
+
+        //是否可写数据
         if (sockKey.isWritable()) {
+
+        	//发现可以发送的包
             Packet p = findSendablePacket(outgoingQueue,
                     sendThread.tunnelAuthInProgress());
 
@@ -120,7 +132,11 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
                     }
                     p.createBB();
                 }
+
+                //写数据字节ByteBuffer
                 sock.write(p.bb);
+
+                //hasRemaining()用于判断缓冲区是否达到上界limit true没有到达
                 if (!p.bb.hasRemaining()) {
                     sentCount.getAndIncrement();
                     outgoingQueue.removeFirstOccurrence(p);

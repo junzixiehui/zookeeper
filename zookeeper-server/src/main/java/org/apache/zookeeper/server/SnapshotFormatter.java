@@ -45,12 +45,13 @@ public class SnapshotFormatter {
      * USAGE: SnapshotFormatter snapshot_file
      */
     public static void main(String[] args) throws Exception {
-        if (args.length != 1) {
+        /*if (args.length != 1) {
             System.err.println("USAGE: SnapshotFormatter snapshot_file");
             System.exit(2);
-        }
+        }*/
 
-        new SnapshotFormatter().run(args[0]);
+		args[0] = "/Users/qulibin/tmp/zookeeper/snapshot.0";
+		new SnapshotFormatter().run(args[0]);
     }
     
     public void run(String snapshotFileName) throws IOException {

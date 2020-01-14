@@ -72,8 +72,8 @@ public abstract class ClientBase extends ZKTestCase {
     public static int CONNECTION_TIMEOUT = 30000;
     static final File BASETEST =
         new File(System.getProperty("build.test.dir", "build"));
-
-    protected String hostPort = "127.0.0.1:" + PortAssignment.unique();
+    //protected String hostPort = "127.0.0.1:" + PortAssignment.unique();
+    protected String hostPort = "127.0.0.1:2182";
     protected int maxCnxns = 0;
     protected ServerCnxnFactory serverFactory = null;
     protected File tmpDir = null;
@@ -244,6 +244,7 @@ public abstract class ClientBase extends ZKTestCase {
                 zk.close();
             }
         }
+
 
         return zk;
     }

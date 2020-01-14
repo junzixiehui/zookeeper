@@ -42,8 +42,7 @@ public class ExpiryQueue<E> {
      * so the expirationInterval should not be too small compared to the
      * max timeout that this expiry queue needs to maintain.
      */
-    private final ConcurrentHashMap<Long, Set<E>> expiryMap =
-        new ConcurrentHashMap<Long, Set<E>>();
+    private final ConcurrentHashMap<Long, Set<E>> expiryMap = new ConcurrentHashMap<Long, Set<E>>();
 
     private final AtomicLong nextExpirationTime = new AtomicLong();
     private final int expirationInterval;
@@ -147,8 +146,7 @@ public class ExpiryQueue<E> {
 
         Set<E> set = null;
         long newExpirationTime = expirationTime + expirationInterval;
-        if (nextExpirationTime.compareAndSet(
-              expirationTime, newExpirationTime)) {
+        if (nextExpirationTime.compareAndSet(expirationTime, newExpirationTime)) {
             set = expiryMap.remove(expirationTime);
         }
         if (set == null) {

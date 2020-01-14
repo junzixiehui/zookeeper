@@ -127,11 +127,13 @@ public class ClientCnxn {
 
     /**
      * These are the packets that have been sent and are waiting for a response.
+	 * 这是已经发送到服务端等待响应的数据包队列
      */
     private final LinkedList<Packet> pendingQueue = new LinkedList<Packet>();
 
     /**
      * These are the packets that need to be sent.
+	 * 请求发送队列
      */
     private final LinkedBlockingDeque<Packet> outgoingQueue = new LinkedBlockingDeque<Packet>();
 
@@ -455,18 +457,16 @@ public class ClientCnxn {
             queueEvent(event, null);
         }
 
-        private void queueEvent(WatchedEvent event,
-                Set<Watcher> materializedWatchers) {
-            if (event.getType() == EventType.None
-                    && sessionState == event.getState()) {
+        private void queueEvent(WatchedEvent event, Set<Watcher> materializedWatchers) {
+            if (event.getType() == EventType.None && sessionState == event.getState()) {
                 return;
             }
             sessionState = event.getState();
             final Set<Watcher> watchers;
             if (materializedWatchers == null) {
                 // materialize the watchers based on the event
-                watchers = watcher.materialize(event.getState(),
-                        event.getType(), event.getPath());
+				// 实现观察者
+                watchers = watcher.materialize(event.getState(), event.getType(), event.getPath());
             } else {
                 watchers = new HashSet<Watcher>();
                 watchers.addAll(materializedWatchers);
@@ -485,8 +485,10 @@ public class ClientCnxn {
        public void queuePacket(Packet packet) {
           if (wasKilled) {
              synchronized (waitingEvents) {
-                if (isRunning) waitingEvents.add(packet);
-                else processEvent(packet);
+                if (isRunning)
+                	waitingEvents.add(packet);
+                else
+                	processEvent(packet);
              }
           } else {
              waitingEvents.add(packet);
@@ -525,13 +527,19 @@ public class ClientCnxn {
                      Long.toHexString(getSessionId()));
         }
 
+
+        //处理事件
        private void processEvent(Object event) {
           try {
+
+          	 // watcher
               if (event instanceof WatcherSetEventPair) {
                   // each watcher will process the event
                   WatcherSetEventPair pair = (WatcherSetEventPair) event;
                   for (Watcher watcher : pair.watchers) {
                       try {
+
+                      	// 本地实现
                           watcher.process(pair.event);
                       } catch (Throwable t) {
                           LOG.error("Error while calling watcher ", t);
@@ -689,6 +697,7 @@ public class ClientCnxn {
         }
         // Add all the removed watch events to the event queue, so that the
         // clients will be notified with 'Data/Child WatchRemoved' event type.
+		// watch监控事件
         if (p.watchDeregistration != null) {
             Map<EventType, Set<Watcher>> materializedWatchers = null;
             try {
@@ -808,13 +817,16 @@ public class ClientCnxn {
         private Random r = new Random();
         private boolean isFirstConnect = true;
 
+        //处理响应
         void readResponse(ByteBuffer incomingBuffer) throws IOException {
-            ByteBufferInputStream bbis = new ByteBufferInputStream(
-                    incomingBuffer);
+            ByteBufferInputStream bbis = new ByteBufferInputStream(incomingBuffer);
             BinaryInputArchive bbia = BinaryInputArchive.getArchive(bbis);
             ReplyHeader replyHdr = new ReplyHeader();
 
+            //反序列化响应头
             replyHdr.deserialize(bbia, "header");
+
+            //ping
             if (replyHdr.getXid() == -2) {
                 // -2 is the xid for pings
                 if (LOG.isDebugEnabled()) {
@@ -826,6 +838,8 @@ public class ClientCnxn {
                 }
                 return;
             }
+
+			//AuthPacket
             if (replyHdr.getXid() == -4) {
                 // -4 is the xid for AuthPacket               
                 if(replyHdr.getErr() == KeeperException.Code.AUTHFAILED.intValue()) {
@@ -840,6 +854,8 @@ public class ClientCnxn {
                 }
                 return;
             }
+
+			//响应事件通知
             if (replyHdr.getXid() == -1) {
                 // -1 means notification
                 if (LOG.isDebugEnabled()) {
@@ -869,27 +885,36 @@ public class ClientCnxn {
                             + Long.toHexString(sessionId));
                 }
 
+                //放入事件处理线程
                 eventThread.queueEvent( we );
                 return;
             }
 
-            // If SASL authentication is currently in progress, construct and
+			/**
+			 * 如果当前正在进行SASL身份验证，请构造并立即发送响应数据包，而不是排队响应与其他数据包一样。
+			 */
+			// If SASL authentication is currently in progress, construct and
             // send a response packet immediately, rather than queuing a
             // response as with other packets.
             if (tunnelAuthInProgress()) {
                 GetSASLRequest request = new GetSASLRequest();
                 request.deserialize(bbia,"token");
+
+                //向服务发送包
                 zooKeeperSaslClient.respondToServer(request.getToken(),
                   ClientCnxn.this);
                 return;
             }
 
+            //清除等待响应队列
             Packet packet;
             synchronized (pendingQueue) {
                 if (pendingQueue.size() == 0) {
                     throw new IOException("Nothing in the queue, but got "
                             + replyHdr.getXid());
                 }
+
+                //移除第一个
                 packet = pendingQueue.remove();
             }
             /*
@@ -916,6 +941,8 @@ public class ClientCnxn {
                     lastZxid = replyHdr.getZxid();
                 }
                 if (packet.response != null && replyHdr.getErr() == 0) {
+
+                	//响应体
                     packet.response.deserialize(bbia, "response");
                 }
 
@@ -924,6 +951,8 @@ public class ClientCnxn {
                             + Long.toHexString(sessionId) + ", packet:: " + packet);
                 }
             } finally {
+
+            	//处理
                 finishPacket(packet);
             }
         }
@@ -954,6 +983,7 @@ public class ClientCnxn {
 
         /**
          * Setup session, previous watches, authentication.
+		 * 建立会话
          */
         void primeConnection() throws IOException {
             LOG.info("Socket connection established, initiating session, client: {}, server: {}",
@@ -1101,6 +1131,7 @@ public class ClientCnxn {
             }
             logStartConnect(addr);
 
+            //建立长链接
             clientCnxnSocket.connect(addr);
         }
 
@@ -1136,6 +1167,8 @@ public class ClientCnxn {
                         } else {
                             serverAddress = hostProvider.next(1000);
                         }
+
+                        //与服务端建立tcp连接
                         startConnect(serverAddress);
                         clientCnxnSocket.updateLastSendAndHeard();
                     }
@@ -1190,12 +1223,15 @@ public class ClientCnxn {
                         LOG.warn(warnInfo);
                         throw new SessionTimeoutException(warnInfo);
                     }
+
+                    //如果状态已连接
                     if (state.isConnected()) {
                     	//1000(1 second) is to prevent race condition missing to send the second ping
                     	//also make sure not to send too many pings when readTimeout is small 
                         int timeToNextPing = readTimeout / 2 - clientCnxnSocket.getIdleSend() - 
                         		((clientCnxnSocket.getIdleSend() > 1000) ? 1000 : 0);
                         //send a ping request either time is due or no packet sent out within MAX_SEND_PING_INTERVAL
+						// 发送心跳包 如果最后发送时间到现在大于10秒
                         if (timeToNextPing <= 0 || clientCnxnSocket.getIdleSend() > MAX_SEND_PING_INTERVAL) {
                             sendPing();
                             clientCnxnSocket.updateLastSend();
@@ -1356,8 +1392,10 @@ public class ClientCnxn {
         /**
          * Callback invoked by the ClientCnxnSocket once a connection has been
          * established.
-         * 
-         * @param _negotiatedSessionTimeout
+         *
+		 * 建立连接之后 回调
+		 *
+         * @param _negotiatedSessionTimeout 协商的会话超时
          * @param _sessionId
          * @param _sessionPasswd
          * @param isRO
@@ -1388,16 +1426,14 @@ public class ClientCnxn {
             hostProvider.onConnected();
             sessionId = _sessionId;
             sessionPasswd = _sessionPasswd;
-            state = (isRO) ?
-                    States.CONNECTEDREADONLY : States.CONNECTED;
+            state = (isRO) ? States.CONNECTEDREADONLY : States.CONNECTED;
             seenRwServerBefore |= !isRO;
             LOG.info("Session establishment complete on server "
                     + clientCnxnSocket.getRemoteSocketAddress()
                     + ", sessionid = 0x" + Long.toHexString(sessionId)
                     + ", negotiated timeout = " + negotiatedSessionTimeout
                     + (isRO ? " (READ-ONLY mode)" : ""));
-            KeeperState eventState = (isRO) ?
-                    KeeperState.ConnectedReadOnly : KeeperState.SyncConnected;
+            KeeperState eventState = (isRO) ? KeeperState.ConnectedReadOnly : KeeperState.SyncConnected;
             eventThread.queueEvent(new WatchedEvent(
                     Watcher.Event.EventType.None,
                     eventState, null));
@@ -1522,9 +1558,11 @@ public class ClientCnxn {
         synchronized (packet) {
             if (requestTimeout > 0) {
                 // Wait for request completion with timeout
+				// 等待请求超时时间
                 waitForPacketFinish(r, packet);
             } else {
                 // Wait for request completion infinitely
+				// 没有设置超时时间 一直阻塞到包结束
                 while (!packet.finished) {
                     packet.wait();
                 }
@@ -1601,6 +1639,11 @@ public class ClientCnxn {
         // 1. synchronize with the final cleanup() in SendThread.run() to avoid race
         // 2. synchronized against each packet. So if a closeSession packet is added,
         // later packet will be notified.
+		/**
+		 * 同步块在这里有两个目的：
+		 * 1.与SendThread.run（）中的  cleanup（）同步以避免竞争
+		 * 2.针对每个数据包进行同步。 因此，如果发送了 关闭会话closeSession数据包，则将通知以后的数据包。
+		 */
         synchronized (state) {
             if (!state.isAlive() || closing) {
                 conLossPacket(packet);
@@ -1610,9 +1653,12 @@ public class ClientCnxn {
                 if (h.getType() == OpCode.closeSession) {
                     closing = true;
                 }
+
+                // 加入待发送队列
                 outgoingQueue.add(packet);
             }
         }
+		// 唤醒发送线程
         sendThread.getClientCnxnSocket().packetAdded();
         return packet;
     }

@@ -61,6 +61,8 @@ import org.slf4j.LoggerFactory;
  * server states that includes the sessions, datatree and the
  * committed logs. It is booted up  after reading the logs
  * and snapshots from the disk.
+ *
+ * 内存数据  datatree+提交日志 从磁盘读取日志和快照后启动
  */
 public class ZKDatabase {
 
@@ -233,6 +235,9 @@ public class ZKDatabase {
     /**
      * load the database from the disk onto memory and also add
      * the transactions to the committedlog in memory.
+	 *
+	 * 加载磁盘数据到内存 增加事务到内存的提交日志里
+	 *
      * @return the last valid zxid on disk
      * @throws IOException
      */

@@ -33,6 +33,9 @@ public interface SnapShot {
     /**
      * deserialize a data tree from the last valid snapshot and 
      * return the last zxid that was deserialized
+	 *
+	 *
+	 * 序列化树形数据从最后一个有效快照
      * @param dt the datatree to be deserialized into
      * @param sessions the sessions to be deserialized into
      * @return the last zxid that was deserialized from the snapshot

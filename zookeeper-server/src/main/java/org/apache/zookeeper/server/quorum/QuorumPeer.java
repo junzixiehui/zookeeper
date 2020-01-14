@@ -878,6 +878,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
 
     public void initialize() throws SaslException {
         // init quorum auth server & learner
+		//判断是否开启权限
         if (isQuorumSaslAuthEnabled()) {
             Set<String> authzHosts = new HashSet<String>();
             for (QuorumServer qs : getView().values()) {
@@ -902,7 +903,9 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         if (!getView().containsKey(myid)) {
             throw new RuntimeException("My id " + myid + " not in the peer list");
          }
+         //加载数据
         loadDataBase();
+        //客户端与服务端的网络通信类ServerCnxnFactory
         startServerCnxnFactory();
         try {
             adminServer.start();
@@ -910,12 +913,14 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             LOG.warn("Problem starting AdminServer", e);
             System.out.println(e);
         }
+		//leader选举
         startLeaderElection();
         super.start();
     }
 
     private void loadDataBase() {
         try {
+			//加载磁盘数据到内存 增加事务到内存的提交日志里
             zkDb.loadDataBase();
 
             // load the epochs
@@ -939,7 +944,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             try {
                 acceptedEpoch = readLongFromFile(ACCEPTED_EPOCH_FILENAME);
             } catch(FileNotFoundException e) {
-            	// pick a reasonable epoch number
+            	// pick a reasonable epoch number  选择一个合理的纪元数
             	// this should only happen once when moving to a
             	// new code version
             	acceptedEpoch = epochOfZxid;
@@ -965,6 +970,8 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     }
     synchronized public void startLeaderElection() {
        try {
+
+       	//判断是否选举 投自己票
            if (getPeerState() == ServerState.LOOKING) {
                currentVote = new Vote(myid, getLastLoggedZxid(), getCurrentEpoch());
            }
@@ -1369,6 +1376,8 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     /**
      * A 'view' is a node's current opinion of the membership of the entire
      * ensemble.
+	 *
+	 * 视图
      */
     public Map<Long,QuorumPeer.QuorumServer> getView() {
         return Collections.unmodifiableMap(getQuorumVerifier().getAllMembers());

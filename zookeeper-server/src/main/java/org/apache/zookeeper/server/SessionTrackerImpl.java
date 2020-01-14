@@ -46,11 +46,12 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements
         SessionTracker {
     private static final Logger LOG = LoggerFactory.getLogger(SessionTrackerImpl.class);
 
-    protected final ConcurrentHashMap<Long, SessionImpl> sessionsById =
-        new ConcurrentHashMap<Long, SessionImpl>();
+    // sessionId管理session
+    protected final ConcurrentHashMap<Long, SessionImpl> sessionsById = new ConcurrentHashMap<Long, SessionImpl>();
 
+    // 管理过期session队列
     private final ExpiryQueue<SessionImpl> sessionExpiryQueue;
-
+	// sessionId管理会话的超时时间 该数据结构和zk内存数据库连通
     private final ConcurrentMap<Long, Integer> sessionsWithTimeout;
     private final AtomicLong nextSessionId = new AtomicLong();
 
@@ -79,6 +80,8 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements
     /**
      * Generates an initial sessionId. High order byte is serverId, next 5
      * 5 bytes are from timestamp, and low order 2 bytes are 0s.
+	 *
+	 * 生成sessionId
      */
     public static long initializeNextSession(long id) {
         long nextSid;
@@ -163,6 +166,7 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements
         LOG.info("SessionTrackerImpl exited loop!");
     }
 
+    // 会话激活
     synchronized public boolean touchSession(long sessionId, int timeout) {
         SessionImpl s = sessionsById.get(sessionId);
 

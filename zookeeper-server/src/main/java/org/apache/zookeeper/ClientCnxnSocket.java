@@ -124,6 +124,7 @@ abstract class ClientCnxnSocket {
         incomingBuffer = ByteBuffer.allocate(len);
     }
 
+    // 读取连接结果
     void readConnectResult() throws IOException {
         if (LOG.isTraceEnabled()) {
             StringBuilder buf = new StringBuilder("0x[");
@@ -200,6 +201,11 @@ abstract class ClientCnxnSocket {
      * - read packets into incomingBuffer.
      * - write outgoing queue packets.
      * - update relevant timestamp.
+	 *
+	 * 做运输工作：
+	 * -将数据包读入入缓冲区。
+	 * -写入传出队列数据包。
+	 * -更新相关时间戳。
      *
      * @param waitTimeOut timeout in blocking wait. Unit in MilliSecond.
      * @param pendingQueue These are the packets that have been sent and
