@@ -1,5 +1,7 @@
 # Apache ZooKeeper
-![alt text](https://zookeeper.apache.org/images/zookeeper_small.gif "ZooKeeper")
+
+
+- ZooKeeper 源码学习
 
 For the latest information about Apache ZooKeeper, please visit our website at:
 
