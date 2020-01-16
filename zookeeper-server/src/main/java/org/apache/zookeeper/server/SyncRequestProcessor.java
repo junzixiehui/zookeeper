@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 /**
  * This RequestProcessor logs requests to disk. It batches the requests to do
  * the io efficiently. The request is not passed to the next RequestProcessor
- * until its log has been synced to disk.
+ * until its log has been synced to disk. 请求会同步记录日志到磁盘之后才会到达下一个处理器
  *
  * SyncRequestProcessor is used in 3 different cases
  * 1. Leader - Sync request to disk and forward it to AckRequestProcessor which
@@ -39,6 +39,9 @@ import org.slf4j.LoggerFactory;
  *             SendAckRequestProcessor which send the packets to leader.
  *             SendAckRequestProcessor is flushable which allow us to force
  *             push packets to leader.
+ *             同步请求的磁盘 紧跟请求到SendAckRequestProcessor 发送包到leader（可强制刷新包到leader）
+ *
+ *
  * 3. Observer - Sync committed request to disk (received as INFORM packet).
  *             It never send ack back to the leader, so the nextProcessor will
  *             be null. This change the semantic of txnlog on the observer
@@ -48,8 +51,7 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements
         RequestProcessor {
     private static final Logger LOG = LoggerFactory.getLogger(SyncRequestProcessor.class);
     private final ZooKeeperServer zks;
-    private final LinkedBlockingQueue<Request> queuedRequests =
-        new LinkedBlockingQueue<Request>();
+    private final LinkedBlockingQueue<Request> queuedRequests = new LinkedBlockingQueue<Request>();
     private final RequestProcessor nextProcessor;
 
     private Thread snapInProcess = null;
@@ -59,6 +61,7 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements
      * Transactions that have been written and are waiting to be flushed to
      * disk. Basically this is the list of SyncItems whose callbacks will be
      * invoked after flush returns successfully.
+	 * 已经写和正在写的事务 被刷新到磁盘 基本上，这是SyncItems的列表，其回调将是刷新成功后调用。
      */
     private final LinkedList<Request> toFlush = new LinkedList<Request>();
     private final Random r = new Random();
@@ -69,10 +72,8 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements
 
     private final Request requestOfDeath = Request.requestOfDeath;
 
-    public SyncRequestProcessor(ZooKeeperServer zks,
-            RequestProcessor nextProcessor) {
-        super("SyncThread:" + zks.getServerId(), zks
-                .getZooKeeperServerListener());
+    public SyncRequestProcessor(ZooKeeperServer zks, RequestProcessor nextProcessor) {
+        super("SyncThread:" + zks.getServerId(), zks.getZooKeeperServerListener());
         this.zks = zks;
         this.nextProcessor = nextProcessor;
         running = true;
@@ -102,6 +103,7 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements
 
             // we do this in an attempt to ensure that not all of the servers
             // in the ensemble take a snapshot at the same time
+			// 确保同一时间 不是所有服务节点去生成快照
             int randRoll = r.nextInt(snapCount/2);
             while (true) {
                 Request si = null;
@@ -169,15 +171,15 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements
         LOG.info("SyncRequestProcessor exited!");
     }
 
-    private void flush(LinkedList<Request> toFlush)
-        throws IOException, RequestProcessorException
-    {
+    private void flush(LinkedList<Request> toFlush) throws IOException, RequestProcessorException {
         if (toFlush.isEmpty())
             return;
 
         zks.getZKDatabase().commit();
         while (!toFlush.isEmpty()) {
             Request i = toFlush.remove();
+
+            // 如果follower=SendAckRequestProcessor
             if (nextProcessor != null) {
                 nextProcessor.processRequest(i);
             }

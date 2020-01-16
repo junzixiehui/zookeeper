@@ -234,6 +234,8 @@ public class LearnerHandler extends ZooKeeperThread {
      * This method will use the thread to send packets added to the
      * queuedPackets list
      *
+	 *
+	 *  发放所有queuedPackets集合数据包
      * @throws InterruptedException
      */
     private void sendPackets() throws InterruptedException {
@@ -554,6 +556,8 @@ public class LearnerHandler extends ZooKeeperThread {
                 int type;
 
                 switch (qp.getType()) {
+
+                	// 处理ACK反馈
                 case Leader.ACK:
                     if (this.learnerType == LearnerType.OBSERVER) {
                         if (LOG.isDebugEnabled()) {

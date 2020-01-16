@@ -42,6 +42,8 @@ public class ProposalRequestProcessor implements RequestProcessor {
     public ProposalRequestProcessor(LeaderZooKeeperServer zks,
             RequestProcessor nextProcessor) {
         this.zks = zks;
+
+        //CommitProcessor
         this.nextProcessor = nextProcessor;
         AckRequestProcessor ackProcessor = new AckRequestProcessor(zks.getLeader());
         syncProcessor = new SyncRequestProcessor(zks, ackProcessor);
@@ -71,10 +73,13 @@ public class ProposalRequestProcessor implements RequestProcessor {
         if (request instanceof LearnerSyncRequest){
             zks.getLeader().processSync((LearnerSyncRequest)request);
         } else {
+        	//CommitProcessor
             nextProcessor.processRequest(request);
             if (request.getHdr() != null) {
-                // We need to sync and get consensus on any transactions
+                // We need to sync and get consensus（达成共识） on any transactions
                 try {
+
+                	// leader 发起投票
                     zks.getLeader().propose(request);
                 } catch (XidRolloverException e) {
                     throw new RequestProcessorException(e.getMessage(), e);

@@ -795,6 +795,8 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     }
 
     public void submitRequest(Request si) {
+
+    	// 如果是第一次提交请求 判断状态
         if (firstProcessor == null) {
             synchronized (this) {
                 try {
@@ -802,6 +804,8 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
                     // processor it should wait for setting up the request
                     // processor chain. The state will be updated to RUNNING
                     // after the setup.
+					//由于所有请求都传递给请求处理器，因此它应该等待建立请求处理器链。 设置后，状态将更新为RUNNING
+					// org.apache.zookeeper.server.ZooKeeperServer.startup 唤醒
                     while (state == State.INITIAL) {
                         wait(1000);
                     }
@@ -819,9 +823,13 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
             touch(si.cnxn);
             boolean validpacket = Request.isValid(si.type);
             if (validpacket) {
-                firstProcessor.processRequest(si);
+
+				//setupRequestProcessors() 设置 firstProcessor 为PrepRequestProcessor
+
+				firstProcessor.processRequest(si);
+
                 if (si.cnxn != null) {
-                    incInProcess();
+                    incInProcess();// 计数
                 }
             } else {
                 LOG.warn("Received packet at server of unknown type " + si.type);
@@ -1088,7 +1096,13 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         return false;
     }
 
-    public void processPacket(ServerCnxn cnxn, ByteBuffer incomingBuffer) throws IOException {
+	/**
+	 * 处理接收到的字节
+	 * @param cnxn
+	 * @param incomingBuffer
+	 * @throws IOException
+	 */
+	public void processPacket(ServerCnxn cnxn, ByteBuffer incomingBuffer) throws IOException {
         // We have the request, now process and setup for next
         InputStream bais = new ByteBufferInputStream(incomingBuffer);
         BinaryInputArchive bia = BinaryInputArchive.getArchive(bais);
@@ -1152,6 +1166,8 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
                 // Always treat packet from the client as a possible
                 // local request.
                 setLocalSessionFlag(si);
+
+                // 提交请求
                 submitRequest(si);
             }
         }

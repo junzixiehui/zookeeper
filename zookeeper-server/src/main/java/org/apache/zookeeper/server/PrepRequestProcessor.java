@@ -127,6 +127,8 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements
     public static void setFailCreate(boolean b) {
         failCreate = b;
     }
+
+    // org.apache.zookeeper.server.ZooKeeperServer.setupRequestProcessors 启动线程
     @Override
     public void run() {
         try {
@@ -183,6 +185,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements
         }
     }
 
+    //添加到变更队列
     private void addChangeRecord(ChangeRecord c) {
         synchronized (zks.outstandingChanges) {
             zks.outstandingChanges.add(c);
@@ -354,10 +357,8 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements
      * @param request
      * @param record
      */
-    protected void pRequest2Txn(int type, long zxid, Request request,
-                                Record record, boolean deserialize)
-        throws KeeperException, IOException, RequestProcessorException
-    {
+    protected void pRequest2Txn(int type, long zxid, Request request, Record record, boolean deserialize)
+			throws KeeperException, IOException, RequestProcessorException {
         request.setHdr(new TxnHeader(request.sessionId, request.cxid, zxid,
                 Time.currentWallTime(), type));
 
@@ -999,6 +1000,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements
         return rv;
     }
 
+    // 放入提交请求队列
     public void processRequest(Request request) {
         submittedRequests.add(request);
     }

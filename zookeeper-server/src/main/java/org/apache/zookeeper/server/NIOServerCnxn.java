@@ -79,16 +79,16 @@ public class NIOServerCnxn extends ServerCnxn {
 
     private final ZooKeeperServer zkServer;
 
-
-
     /**
      * The number of requests that have been submitted but not yet responded to.
+	 * 记录已经被提交但是还没有响应的 请求数量
      */
     private final AtomicInteger outstandingRequests = new AtomicInteger(0);
 
     /**
      * This is the id that uniquely identifies the session of a client. Once
      * this session is no longer active, the ephemeral nodes will go away.
+	 * 客户端唯一sessionId,一旦session不再活跃，临时节点将丢失。
      */
     private long sessionId;
 
@@ -162,7 +162,9 @@ public class NIOServerCnxn extends ServerCnxn {
         requestInterestOpsUpdate();
     }
 
-    /** Read the request payload (everything following the length prefix) */
+    /** Read the request payload (everything following the length prefix)
+	 * 读取请求的有效数据（特定长度前缀之后的所有的内容）
+	 * */
     private void readPayload() throws IOException, InterruptedException {
         if (incomingBuffer.remaining() != 0) { // have we read length bytes?
             int rc = sock.read(incomingBuffer); // sock is non-blocking, so ok
@@ -327,6 +329,7 @@ public class NIOServerCnxn extends ServerCnxn {
                             + Long.toHexString(sessionId)
                             + ", likely client has closed socket");
                 }
+                //返回剩余的可用长度，此长度为实际读取的数据长度
                 if (incomingBuffer.remaining() == 0) {
                     boolean isPayload;
                     if (incomingBuffer == lenBuffer) { // start of next request
@@ -337,7 +340,7 @@ public class NIOServerCnxn extends ServerCnxn {
                         // continuation
                         isPayload = true;
                     }
-                    if (isPayload) { // not the case for 4letterword
+                    if (isPayload) { // not the case for 4letterword 非4字命令
                         readPayload();
                     }
                     else {
@@ -476,9 +479,7 @@ public class NIOServerCnxn extends ServerCnxn {
         }
     }
     /** Return if four letter word found and responded to, otw false **/
-    private boolean checkFourLetterWord(final SelectionKey k, final int len)
-    throws IOException
-    {
+    private boolean checkFourLetterWord(final SelectionKey k, final int len) throws IOException {
         // We take advantage of the limited size of the length to look
         // for cmds. They are all 4-bytes which fits inside of an int
         if (!FourLetterCommands.isKnown(len)) {
