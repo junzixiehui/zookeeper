@@ -23,6 +23,14 @@ import java.util.HashSet;
 
 import org.apache.zookeeper.server.quorum.flexible.QuorumVerifier;
 
+/**
+ * 投票统计器：SyncedLearnerTracker
+ * 这个类的主要作用是为本轮选举或事务投票提供一些统计性的功能，如下：
+ * 1.添加投票验证器以及初始化ackset，ackset是一个zookeeper服务发送ack应答列表
+ * 2.添加ack应答到相应的列表中
+ * 3.验证当前缓存的投票验证器中是否存在指定serverId的参与投票角色
+ * 4.检验是否通过本轮选举或事务投票
+ */
 public class SyncedLearnerTracker {
 
     protected ArrayList<QuorumVerifierAcksetPair> qvAcksetPairs = 
@@ -36,6 +44,7 @@ public class SyncedLearnerTracker {
     public boolean addAck(Long sid) {
         boolean change = false;
         for (QuorumVerifierAcksetPair qvAckset : qvAcksetPairs) {
+        	// 判断该服务器id是否在集群里
             if (qvAckset.getQuorumVerifier().getVotingMembers().containsKey(sid)) {
                 qvAckset.getAckset().add(sid);
                 change = true;
@@ -44,8 +53,13 @@ public class SyncedLearnerTracker {
         return change;
     }
 
+    /**
+	 * 检验是否通过本轮选举或事务投票，这里需要注意的是，只要SyncedLearnerTracker缓存的投票验证器QuorumVerifier中有一个没有通过投票，那么会认为本轮投票失败
+     */
     public boolean hasAllQuorums() {
         for (QuorumVerifierAcksetPair qvAckset : qvAcksetPairs) {
+
+        	//验证集合是否为多数
             if (!qvAckset.getQuorumVerifier().containsQuorum(qvAckset.getAckset()))
                 return false;
         }

@@ -320,8 +320,11 @@ public class QuorumHierarchical implements QuorumVerifier {
     
     /**
      * Verifies if a given set is a quorum.
+	 *
+	 * 验证集合是否为多数 通过权重
      */
     public boolean containsQuorum(Set<Long> set){
+    	// 服务器id对应的权重
         HashMap<Long, Long> expansion = new HashMap<Long, Long>();
         
         /*
@@ -343,7 +346,8 @@ public class QuorumHierarchical implements QuorumVerifier {
   
         /*
          * Check if all groups have majority
-         */
+         * 检查所有组是否都占多数
+		 */
         int majGroupCounter = 0;
         for (Entry<Long, Long> entry : expansion.entrySet()) {
             Long gid = entry.getKey();

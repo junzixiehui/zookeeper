@@ -72,8 +72,7 @@ public class NIOServerCnxn extends ServerCnxn {
 
     private ByteBuffer incomingBuffer = lenBuffer;
 
-    private final Queue<ByteBuffer> outgoingBuffers =
-        new LinkedBlockingQueue<ByteBuffer>();
+    private final Queue<ByteBuffer> outgoingBuffers = new LinkedBlockingQueue<ByteBuffer>();
 
     private int sessionTimeout;
 
@@ -152,6 +151,7 @@ public class NIOServerCnxn extends ServerCnxn {
     /**
      * sendBuffer pushes a byte buffer onto the outgoing buffer queue for
      * asynchronous writes.
+	 * sendBuffer将字节缓冲区推送到传出缓冲区队列中 异步写入。
      */
     public void sendBuffer(ByteBuffer bb) {
         if (LOG.isTraceEnabled()) {

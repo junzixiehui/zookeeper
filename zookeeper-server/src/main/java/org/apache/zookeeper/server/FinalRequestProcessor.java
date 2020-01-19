@@ -82,8 +82,13 @@ import java.util.Locale;
  * RequestProcessor chain (hence the name), so it does not have a nextProcessor
  * member.
  *
+ *  责任链的末尾，所以没有nextProcessor
+ *
  * This RequestProcessor counts on ZooKeeperServer to populate the
  * outstandingRequests member of ZooKeeperServer.
+ *
+ *这个RequestProcessor依靠ZooKeeperServer来填充ZooKeeperServer的outstandingRequests成员。
+ *
  */
 public class FinalRequestProcessor implements RequestProcessor {
     private static final Logger LOG = LoggerFactory.getLogger(FinalRequestProcessor.class);

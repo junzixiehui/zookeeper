@@ -725,11 +725,12 @@ public class Leader {
 		// in order to be committed, a proposal must be accepted by a quorum.
 		//
 		// getting a quorum from all necessary configurations.
+		// 检查是否都占多数
 		if (!p.hasAllQuorums()) {
 			return false;
 		}
 
-		// commit proposals in order
+		// commit proposals in order 按顺序提交提案
 		if (zxid != lastCommitted + 1) {
 			LOG.warn("Commiting zxid 0x" + Long.toHexString(zxid) + " from " + followerAddr + " not first!");
 			LOG.warn("First is " + (lastCommitted + 1));
@@ -789,13 +790,16 @@ public class Leader {
 	 * Keep a count of acks that are received by the leader for a particular
 	 * proposal
 	 *
+	 * 针对某个提案统计已经收到的ack的数量。用zxid标识
+	 *
 	 * @param zxid, the zxid of the proposal sent out
 	 * @param sid, the id of the server that sent the ack
 	 * @param followerAddr
 	 */
 	synchronized public void processAck(long sid, long zxid, SocketAddress followerAddr) {
 		if (!allowedToCommit)
-			return; // last op committed was a leader change - from now on
+			return;
+		// last op committed was a leader change - from now on
 		// the new leader should commit
 		if (LOG.isTraceEnabled()) {
 			LOG.trace("Ack zxid: 0x{}", Long.toHexString(zxid));
@@ -811,6 +815,8 @@ public class Leader {
 			 * We no longer process NEWLEADER ack with this method. However,
 			 * the learner sends an ack back to the leader after it gets
 			 * UPTODATE, so we just ignore the message.
+			 *
+			 * 对某些learner的更新时间的ack的消息忽略。
 			 */
 			return;
 		}
@@ -822,6 +828,7 @@ public class Leader {
 			}
 			return;
 		}
+		//判断当前的事务id大于learner节点的事务id,大于标识事务id已经提交,你反馈晚了。
 		if (lastCommitted >= zxid) {
 			if (LOG.isDebugEnabled()) {
 				LOG.debug("proposal has already been committed, pzxid: 0x{} zxid: 0x{}",
@@ -883,6 +890,13 @@ public class Leader {
 		 * FinalRequestProcessor.processRequest MUST process the request
 		 * synchronously!
 		 *
+		 * 该请求处理器仅维护toBeApplied列表, 下一个处理器必须是FinalRequestProcessor,
+		 * FinalRequestProcessor.processRequest 必须同步处理请求。
+		 *
+		 * 主要是为了维护Leader类的toBeApplied队列，这个队列中保存了已经完成投票（即commit）的proposal，
+		 * 但是这些proposal还没有应用到本机的内存中（这个工作是由FinalRequestProcessor来完成的
+		 *
+		 *
 		 * @param next
 		 *                a reference to the FinalRequestProcessor
 		 */
@@ -907,6 +921,9 @@ public class Leader {
 			// requests, for which we will have a hdr. We can't simply use
 			// request.zxid here because that is set on read requests to equal
 			// the zxid of the last write op.
+
+			//应该在toBeApplied队列上的唯一请求是write请求，我们将为其提供hdr。
+			// 我们不能简单地使用request.zxid在这里，因为在读取请求上将其设置为等于最后写入操作的zxid。
 			if (request.getHdr() != null) {
 				long zxid = request.getHdr().getZxid();
 				Iterator<Proposal> iter = leader.toBeApplied.iterator();

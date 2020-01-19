@@ -39,6 +39,8 @@ class AckRequestProcessor implements RequestProcessor {
 
     /**
      * Forward the request as an ACK to the leader
+	 *
+	 * 跟随者ack反馈给leader已经写好事务日志
      */
     public void processRequest(Request request) {
         QuorumPeer self = leader.self;
